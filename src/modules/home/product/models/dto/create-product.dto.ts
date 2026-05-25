@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   IsUrl,
   MaxLength,
   ValidateNested,
@@ -37,11 +38,12 @@ export class CreateProductDto {
   @MaxLength(100)
   brand?: string;
 
-  @ApiProperty({ required: false, example: 'Smartphones' })
+  @ApiPropertyOptional({
+    description: 'Category id (UUID). Omit to leave product uncategorized.',
+  })
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  category?: string;
+  @IsUUID()
+  categoryId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

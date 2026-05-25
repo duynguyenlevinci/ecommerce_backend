@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -12,6 +13,7 @@ import {
 import { OrderStatus } from '../../../../../common/enums/order-status.enum';
 import { User } from '../../../../auth/models/entities/user.entity';
 import { OrderItem } from './order-item.entity';
+import { OrderStatusHistory } from './order-status-history.entity';
 
 @Entity({ name: 'orders' })
 export class Order {
@@ -20,6 +22,7 @@ export class Order {
   id!: string;
 
   @ApiProperty({ example: 'ORD-1717000000000-AB12' })
+  @Index({ unique: true })
   @Column({ name: 'order_code', type: 'varchar', length: 64, unique: true })
   orderCode!: string;
 
@@ -28,10 +31,12 @@ export class Order {
   user!: User;
 
   @ApiProperty()
+  @Index()
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
 
   @ApiProperty({ enum: OrderStatus, example: OrderStatus.PENDING })
+  @Index()
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status!: OrderStatus;
 
@@ -45,13 +50,45 @@ export class Order {
   })
   totalAmount!: string;
 
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional()
   @Column({ name: 'shipping_address', type: 'text', nullable: true })
   shippingAddress!: string | null;
 
-  @ApiProperty({ required: false })
+  @ApiPropertyOptional()
   @Column({ name: 'note', type: 'text', nullable: true })
   note!: string | null;
+
+  // ---- Tracking / lifecycle timestamps -------------------------------
+
+  @ApiPropertyOptional({
+    description: 'Courier tracking number, set when shipped',
+  })
+  @Column({ name: 'tracking_number', type: 'varchar', length: 100, nullable: true })
+  trackingNumber!: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Shipping company name, e.g. "GHN", "GHTK", "VNPost"',
+  })
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  courier!: string | null;
+
+  @ApiPropertyOptional({ description: 'When the order was marked PAID' })
+  @Column({ name: 'paid_at', type: 'timestamptz', nullable: true })
+  paidAt!: Date | null;
+
+  @ApiPropertyOptional({ description: 'When the order was handed off to courier' })
+  @Column({ name: 'shipped_at', type: 'timestamptz', nullable: true })
+  shippedAt!: Date | null;
+
+  @ApiPropertyOptional({ description: 'When the order was delivered' })
+  @Column({ name: 'delivered_at', type: 'timestamptz', nullable: true })
+  deliveredAt!: Date | null;
+
+  @ApiPropertyOptional({ description: 'When the order was cancelled' })
+  @Column({ name: 'cancelled_at', type: 'timestamptz', nullable: true })
+  cancelledAt!: Date | null;
+
+  // ---- Relations ------------------------------------------------------
 
   @ApiProperty({ type: () => [OrderItem] })
   @OneToMany(() => OrderItem, (item) => item.order, {
@@ -59,6 +96,10 @@ export class Order {
     eager: true,
   })
   items!: OrderItem[];
+
+  @ApiPropertyOptional({ type: () => [OrderStatusHistory] })
+  @OneToMany(() => OrderStatusHistory, (h) => h.order, { cascade: true })
+  history!: OrderStatusHistory[];
 
   @ApiProperty()
   @CreateDateColumn({ name: 'created_at' })

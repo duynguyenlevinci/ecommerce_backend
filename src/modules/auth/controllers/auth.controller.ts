@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
@@ -16,7 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../../../common/decorators/public.decorator';
 import { SigninDto } from '../models/dto/signin.dto';
 import { SignupDto } from '../models/dto/signup.dto';
 import { User } from '../models/entities/user.entity';
@@ -28,6 +27,7 @@ import { AuthService } from '../services/auth.service';
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
 
+  @Public()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new account' })
@@ -36,6 +36,7 @@ export class AuthController {
     return this.authService.signup(dto);
   }
 
+  @Public()
   @Post('signin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
@@ -46,9 +47,18 @@ export class AuthController {
 
   @Get('me')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get authenticated profile' })
   me(@CurrentUser() user: User) {
     return user;
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Log out everywhere (invalidates all tokens of the user)',
+  })
+  async logout(@CurrentUser() user: User): Promise<void> {
+    await this.authService.logout(user);
   }
 }

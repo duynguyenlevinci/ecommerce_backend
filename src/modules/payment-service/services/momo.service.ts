@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { MomoConfig } from '../../../config/configuration';
+import { MOMO } from '../constants/momo.constants';
 
 export interface MomoCreatePaymentRequest {
   orderId: string;
@@ -140,7 +141,7 @@ export class MomoService {
       extraData,
       requestType: cfg.requestType,
       signature,
-      lang: 'vi',
+      lang: MOMO.LANG,
     };
 
     this.logger.debug(`MoMo create request for order=${input.orderId}`);
@@ -159,7 +160,7 @@ export class MomoService {
     }
 
     const data = (await response.json()) as MomoCreatePaymentResponse;
-    if (data.resultCode !== 0) {
+    if (data.resultCode !== MOMO.RESULT_CODE_SUCCESS) {
       this.logger.warn(
         `MoMo returned resultCode=${data.resultCode} message="${data.message}"`,
       );

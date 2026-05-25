@@ -1,6 +1,7 @@
 import {
   CallHandler,
   ExecutionContext,
+  HttpStatus,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
@@ -40,7 +41,7 @@ export class ResponseInterceptor<T>
         if (data instanceof BaseResponse) return data;
 
         const response = context.switchToHttp().getResponse<Response>();
-        const statusCode = response.statusCode ?? 200;
+        const statusCode = response.statusCode ?? HttpStatus.OK;
         return new BaseResponse<T>(statusCode, (data ?? null) as T | null, []);
       }),
     );

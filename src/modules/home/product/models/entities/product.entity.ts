@@ -1,13 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Category } from '../../../category/models/entities/category.entity';
 import { ProductVariant } from '../../../product-variant/models/entities/product-variant.entity';
 
 @Entity({ name: 'products' })
@@ -34,9 +37,21 @@ export class Product {
   @Column({ type: 'varchar', length: 100, nullable: true })
   brand!: string | null;
 
-  @ApiProperty({ required: false, example: 'Smartphones' })
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  category!: string | null;
+  @ApiPropertyOptional({
+    description: 'Foreign key to `categories.id`. Null when uncategorized.',
+    nullable: true,
+  })
+  @Index()
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
+  categoryId!: string | null;
+
+  @ApiPropertyOptional({ type: () => Category, nullable: true })
+  @ManyToOne(() => Category, (category) => category.products, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'category_id' })
+  category!: Category | null;
 
   @ApiProperty({ required: false })
   @Column({ name: 'image_url', type: 'varchar', length: 500, nullable: true })

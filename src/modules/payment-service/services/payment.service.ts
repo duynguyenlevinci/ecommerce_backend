@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { MONEY } from '../../../common/constants/money.constants';
 import {
   PaymentProvider,
   PaymentStatus,
@@ -15,6 +16,8 @@ import { UserRole } from '../../../common/enums/user-role.enum';
 import { User } from '../../auth/models/entities/user.entity';
 import { Order } from '../../home/order/models/entities/order.entity';
 import { OrderService } from '../../home/order/services/order.service';
+import { MOMO } from '../constants/momo.constants';
+import { PAYMENT } from '../constants/payment.constants';
 import { CreatePaymentDto } from '../models/dto/create-payment.dto';
 import { MomoIpnDto } from '../models/dto/momo-ipn.dto';
 import { Payment } from '../models/entities/payment.entity';
@@ -66,8 +69,8 @@ export class PaymentService {
       requestId,
       provider: PaymentProvider.MOMO,
       status: PaymentStatus.PENDING,
-      amount: amount.toFixed(2),
-      currency: 'VND',
+      amount: amount.toFixed(MONEY.DECIMAL_PLACES),
+      currency: PAYMENT.DEFAULT_CURRENCY,
     });
     const saved = await this.paymentRepository.save(payment);
 
@@ -83,7 +86,7 @@ export class PaymentService {
       saved.qrCodeUrl = momoResponse.qrCodeUrl ?? null;
       saved.rawResponse = momoResponse as unknown as Record<string, unknown>;
 
-      if (momoResponse.resultCode !== 0) {
+      if (momoResponse.resultCode !== MOMO.RESULT_CODE_SUCCESS) {
         saved.status = PaymentStatus.FAILED;
       }
       return this.paymentRepository.save(saved);
@@ -130,7 +133,7 @@ export class PaymentService {
     payment.transactionId = String(payload.transId);
     payment.rawResponse = payload as unknown as Record<string, unknown>;
 
-    if (payload.resultCode === 0) {
+    if (payload.resultCode === MOMO.RESULT_CODE_SUCCESS) {
       payment.status = PaymentStatus.SUCCESS;
       await this.orderService.markPaidByCode(payment.orderCode);
     } else {
@@ -142,8 +145,8 @@ export class PaymentService {
       partnerCode: payload.partnerCode,
       requestId: payload.requestId,
       orderId: payload.orderId,
-      resultCode: 0,
-      message: 'Acknowledged',
+      resultCode: MOMO.IPN_ACK_RESULT_CODE,
+      message: MOMO.IPN_ACK_MESSAGE,
       responseTime: Date.now(),
     };
   }
@@ -166,7 +169,17 @@ export class PaymentService {
     return payment;
   }
 
-  findAllForOrder(orderId: string): Promise<Payment[]> {
+  async findAllForOrder(
+    orderId: string,
+    requester: User,
+  ): Promise<Payment[]> {
+    const order = await this.orderRepository.findOne({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException(`Order ${orderId} not found`);
+    }
+    if (requester.role !== UserRole.ADMIN && order.userId !== requester.id) {
+      throw new ForbiddenException('You cannot access payments for this order');
+    }
     return this.paymentRepository.find({
       where: { orderId },
       order: { createdAt: 'DESC' },
@@ -175,7 +188,10 @@ export class PaymentService {
 
   private generateRequestId(): string {
     const ts = Date.now();
-    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-    return `REQ-${ts}-${rand}`;
+    const rand = Math.random()
+      .toString(36)
+      .slice(2, 2 + PAYMENT.REQUEST_ID_RANDOM_SUFFIX_LENGTH)
+      .toUpperCase();
+    return `${PAYMENT.REQUEST_ID_PREFIX}${ts}-${rand}`;
   }
 }

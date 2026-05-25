@@ -19,6 +19,7 @@ export interface DatabaseConfig {
 export interface JwtConfig {
   secret: string;
   expiresIn: string;
+  maxAgeDays: number;
 }
 
 export interface BcryptConfig {
@@ -78,7 +79,8 @@ export default (): AppConfiguration => ({
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? 'change-me-in-production',
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '30d',
+    maxAgeDays: toInt(process.env.JWT_MAX_AGE_DAYS, 30),
   },
   bcrypt: {
     saltRounds: toInt(process.env.BCRYPT_SALT_ROUNDS, 10),

@@ -18,9 +18,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Public } from '../../../../common/decorators/public.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../../common/enums/user-role.enum';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../auth/guards/roles.guard';
 import { CreateProductDto } from '../models/dto/create-product.dto';
 import { QueryProductDto } from '../models/dto/query-product.dto';
@@ -33,12 +33,14 @@ import { ProductService } from '../services/product.service';
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'Browse products (paginated, filter, search)' })
   findAll(@Query() query: QueryProductDto) {
     return this.productService.findAll(query);
   }
 
+  @Public()
   @Get('slug/:slug')
   @ApiOperation({ summary: 'Get product by slug (product detail page)' })
   @ApiResponse({ status: 200, type: Product })
@@ -46,6 +48,7 @@ export class ProductController {
     return this.productService.findBySlug(slug);
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get product by id' })
   findOne(@Param('id', new ParseUUIDPipe()) id: string) {
@@ -54,7 +57,7 @@ export class ProductController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a product with variants (admin only)' })
   create(@Body() dto: CreateProductDto) {
@@ -63,7 +66,7 @@ export class ProductController {
 
   @Patch(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a product (admin only)' })
   update(
@@ -75,7 +78,7 @@ export class ProductController {
 
   @Delete(':id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a product (admin only)' })

@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -18,7 +19,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class BaseResponse<T = unknown> {
   @ApiProperty({
     description: 'HTTP-style status code of the response',
-    example: 200,
+    example: HttpStatus.OK,
   })
   statusCode: number;
 
@@ -41,7 +42,10 @@ export class BaseResponse<T = unknown> {
     this.data = data;
   }
 
-  static success<T>(data: T, statusCode = 200): BaseResponse<T> {
+  static success<T>(
+    data: T,
+    statusCode: number = HttpStatus.OK,
+  ): BaseResponse<T> {
     return new BaseResponse<T>(statusCode, data, []);
   }
 

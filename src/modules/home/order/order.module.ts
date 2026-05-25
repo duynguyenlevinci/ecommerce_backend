@@ -4,12 +4,13 @@ import { AuthModule } from '../../auth/auth.module';
 import { ProductVariantModule } from '../product-variant/product-variant.module';
 import { OrderController } from './controllers/order.controller';
 import { OrderItem } from './models/entities/order-item.entity';
+import { OrderStatusHistory } from './models/entities/order-status-history.entity';
 import { Order } from './models/entities/order.entity';
 import { OrderService } from './services/order.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem]),
+    TypeOrmModule.forFeature([Order, OrderItem, OrderStatusHistory]),
     AuthModule,
     ProductVariantModule,
   ],

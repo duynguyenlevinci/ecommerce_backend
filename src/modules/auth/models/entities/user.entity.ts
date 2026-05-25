@@ -41,6 +41,15 @@ export class User {
   @Column({ type: 'boolean', default: true })
   isActive!: boolean;
 
+  /**
+   * Any JWT whose `iat` (issued-at) is older than this timestamp is rejected.
+   * Bumped automatically when a token exceeds the maximum lifetime
+   * (`JWT_MAX_AGE_DAYS`), effectively logging the user out from all devices.
+   */
+  @Exclude({ toPlainOnly: true })
+  @Column({ name: 'token_invalidated_at', type: 'timestamptz', nullable: true })
+  tokenInvalidatedAt!: Date | null;
+
   @OneToMany(() => Order, (order) => order.user)
   orders!: Order[];
 
