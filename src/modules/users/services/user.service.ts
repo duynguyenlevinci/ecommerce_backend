@@ -30,7 +30,7 @@ export class UserService {
 
     const search = query.search?.trim();
     if (search) {
-      qb.andWhere('(user.fullName ILIKE :s OR user.email ILIKE :s)', {
+      qb.andWhere('(user.fullName ILIKE :spr OR user.email ILIKE :s)', {
         s: `%${search}%`,
       });
     }
