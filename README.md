@@ -24,6 +24,7 @@ Backend cho hệ thống thương mại điện tử, xây dựng bằng [NestJS
 - [Phân quyền (RBAC)](#phân-quyền-rbac)
 - [Bảng lệnh đầy đủ](#bảng-lệnh-đầy-đủ)
 - [Workflow ví dụ](#workflow-ví-dụ)
+- [Shell / Zsh (tuỳ chọn)](#shell--zsh-tuỳ-chọn)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -339,6 +340,154 @@ curl -X POST http://localhost:3000/api/v1/orders \
 ```bash
 curl http://localhost:3000/api/v1/orders/my \
   -H "Authorization: Bearer <USER_TOKEN>"
+```
+
+---
+
+## Shell / Zsh (tuỳ chọn)
+
+Project có sẵn script tự động cài [Oh My Zsh](https://ohmyz.sh/) **toàn hệ thống Windows** (PowerShell + Git Bash + MSYS2, tất cả share chung `~/.zshrc` ở `%USERPROFILE%`). Mục đích: prompt đẹp, autosuggestion, syntax highlight và alias sẵn cho npm / git / docker / postgres.
+
+> Cài 1 lần dùng cho mọi project, không chỉ riêng repo này. Project NestJS chạy bình thường mà không cần zsh.
+
+### Yêu cầu
+
+| Phần mềm | Ghi chú |
+|---|---|
+| Windows 10/11 | |
+| Git for Windows | đã có Git Bash (`C:\Program Files\Git\bin\bash.exe`) |
+| winget | có sẵn trong Windows 11 hoặc cài "App Installer" từ Microsoft Store |
+| PowerShell Admin | cần để sửa Machine PATH + copy file vào `C:\Program Files\Git` |
+
+### Cài tự động (1 script)
+
+Mở **PowerShell as Administrator** và chạy:
+
+```powershell
+cd C:\ecommerce_projects\ecommerce_backend
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\install-zsh-windows.ps1
+```
+
+Script làm tuần tự:
+1. `winget install MSYS2.MSYS2` (skip nếu đã có ở `C:\msys64`).
+2. `pacman -S zsh ncurses git curl wget` trong MSYS2.
+3. Sửa `C:\msys64\etc\nsswitch.conf` → `db_home: windows cygwin desc` để MSYS2 dùng `HOME = %USERPROFILE%` (Oh My Zsh nằm ở `C:\Users\<user>\.oh-my-zsh`, dùng được cho mọi shell).
+4. Copy `zsh.exe`, `msys-2.0.dll`, `wget.exe`, `share/zsh`, `etc/zsh` từ MSYS2 → Git Bash.
+5. **Thêm vào system PATH (Machine, idempotent):**
+   - `C:\msys64\usr\bin` — để `zsh` chạy được từ PowerShell / cmd.
+   - `C:\Program Files\Git\bin` — đảm bảo `git`, `bash` từ Git for Windows luôn có.
+6. Refresh PATH trong session hiện tại.
+7. Verify `zsh --version` chạy được từ cả PowerShell và Git Bash.
+8. Tự gọi `bash scripts/install-oh-my-zsh.sh`, dùng **lệnh `wget` chính thức** từ [ohmyz.sh](https://ohmyz.sh/) để cài Oh My Zsh (unattended), rồi thêm powerlevel10k + 3 plugin + `~/.zshrc` từ template.
+
+   ```bash
+   sh -c "$(wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+   ```
+
+   Script bash dùng cờ `--unattended` + `RUNZSH=no CHSH=no KEEP_ZSHRC=yes` để cài không cần tương tác và không tự đổi default shell.
+
+Sau khi xong, **mở terminal MỚI** (PowerShell, cmd, Git Bash đều được) và gõ:
+
+```powershell
+zsh
+```
+
+Lần đầu sẽ hiện wizard powerlevel10k cấu hình prompt → kết quả lưu vào `~/.p10k.zsh`.
+
+> Lưu ý: MSYS2 được đặt ở **cuối** Machine PATH để không shadow các lệnh Windows (`ls`, `find`, `where`...) trong PowerShell. Nếu muốn dùng phiên bản Unix của những lệnh đó trong PowerShell, gõ đường dẫn đầy đủ hoặc dùng trực tiếp trong zsh.
+
+### Tích hợp Cursor / VSCode
+
+Mở **Settings → search "terminal profiles"** (hoặc sửa `settings.json`) và thêm profile dưới đây để Cursor có thể mở terminal là `zsh` thay vì `bash`:
+
+```json
+{
+  "terminal.integrated.profiles.windows": {
+    "Git Bash (zsh)": {
+      "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "args": ["--login", "-i", "-c", "exec zsh"],
+      "icon": "terminal-bash"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "Git Bash (zsh)"
+}
+```
+
+Sau đó Ctrl+Shift+` để mở terminal mới — sẽ vào thẳng zsh.
+
+### Cài thủ công (không dùng script)
+
+Nếu muốn tự làm từng bước (PowerShell admin):
+
+```powershell
+# 1. Cài MSYS2
+winget install --id MSYS2.MSYS2 --silent
+
+# 2. Trong MSYS2 shell (C:\msys64\msys2.exe):
+#    pacman -Sy
+#    pacman -S --needed zsh ncurses git curl
+
+# 3. Sửa C:\msys64\etc\nsswitch.conf, đổi/thêm dòng:
+#    db_home: windows cygwin desc
+
+# 4. Thêm vào system PATH (Machine):
+$old = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$add = "C:\msys64\usr\bin;C:\Program Files\Git\bin"
+[Environment]::SetEnvironmentVariable("Path", "$old;$add", "Machine")
+
+# 5. Mở PowerShell mới, kiểm tra:
+zsh --version
+
+# 6. Cài Oh My Zsh:
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+### Alias có sẵn
+
+File `scripts/zshrc.template` đã định nghĩa các alias hay dùng với project:
+
+| Alias | Lệnh thật |
+|---|---|
+| `nrd` | `npm run start:dev` |
+| `nrb` | `npm run build` |
+| `nrt` | `npm test` |
+| `nrl` | `npm run lint` |
+| `nrf` | `npm run format` |
+| `pg-up` | `docker run --name pg-ecommerce ... postgres:16` |
+| `pg-start` / `pg-stop` / `pg-logs` | quản lý container Postgres |
+| `gs`, `gd`, `gco`, `gcm`, `gp`, `gpu`, `gl` | git shortcuts |
+
+### Troubleshooting (zsh)
+
+**Lỗi `zsh: command not found` sau khi chạy script PowerShell:**
+- Mở **terminal mới** (session cũ chưa load PATH mới).
+- Kiểm tra trong PowerShell mới: `Get-Command zsh` → phải trỏ tới `C:\msys64\usr\bin\zsh.exe`.
+- Kiểm tra PATH: `[Environment]::GetEnvironmentVariable("Path","Machine") -split ';'` — phải có `C:\msys64\usr\bin`.
+
+**Oh My Zsh được cài 2 lần (1 trong `C:\msys64\home\<user>`, 1 trong `C:\Users\<user>`):**
+- Xảy ra nếu chạy zsh **trước** khi sửa nsswitch.conf. Xoá bản trong `C:\msys64\home\<user>` và chạy lại script PowerShell (sẽ tự sửa nsswitch).
+
+**Wizard powerlevel10k hiển thị ký tự lạ (□, ?):**
+- Cài font [MesloLGS NF](https://github.com/romkatv/powerlevel10k#meslo-nerd-font-patched-for-powerlevel10k) và đặt làm font terminal (Cursor / Windows Terminal / VSCode).
+
+**Lệnh `ls` / `find` / `where` trong PowerShell trả kết quả lạ:**
+- MSYS2 trong PATH có các binary cùng tên. Vì script đặt MSYS2 ở **cuối** PATH nên thường không xảy ra. Nếu vẫn bị, gọi đầy đủ: `Get-ChildItem` thay vì `ls`, hoặc xoá `C:\msys64\usr\bin` khỏi PATH và chỉ dùng `zsh` qua đường dẫn trực tiếp.
+
+**Muốn gỡ hoàn toàn:**
+
+```powershell
+# PowerShell admin
+# 1. Xoá khỏi PATH
+$paths = [Environment]::GetEnvironmentVariable("Path","Machine") -split ';' |
+    Where-Object { $_ -notmatch 'msys64' }
+[Environment]::SetEnvironmentVariable("Path", ($paths -join ';'), "Machine")
+
+# 2. Gỡ MSYS2
+winget uninstall MSYS2.MSYS2
+
+# 3. Xoá Oh My Zsh
+Remove-Item -Recurse -Force $env:USERPROFILE\.oh-my-zsh, $env:USERPROFILE\.zshrc, $env:USERPROFILE\.p10k.zsh -ErrorAction SilentlyContinue
 ```
 
 ---
